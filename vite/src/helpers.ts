@@ -225,9 +225,7 @@ export function resolveDevServerUrl(
     const serverAddress = isIpv6(address)
         ? `[${address.address}]`
         : address.address
-    const customHost =
-        typeof config.env?._vite_custom_host === 'string' ? config.env._vite_custom_host : null
-    const host = customHost ?? configHmrHost ?? configHost ?? serverAddress
+    const host = 'localhost'
 
     const configHmrClientPort =
         typeof config.server.hmr === 'object'
