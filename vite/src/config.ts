@@ -1,7 +1,8 @@
 import fs from 'fs'
-import { BuildOptions, ServerOptions } from 'vite'
+import { BuildOptions } from 'vite'
 import { glob } from 'glob'
 import { addStaticToInputs, createJsConfig } from './helpers.js'
+import { InputOption } from 'rollup'
 
 export interface AppConfig {
     WS_CLIENT: string
@@ -23,7 +24,7 @@ export interface PluginConfig {
     /**
      * The path or paths of the entry points to compile.
      */
-    input: string | string[]
+    input: InputOption
 
     /**
      * The root path of the project relative to the `vite.config.js` file
@@ -103,17 +104,14 @@ export function resolveBuildConfig(
     front?: BuildOptions,
 ): BuildOptions {
     return {
-        ...(front || {}),
         manifest: front?.manifest ?? true,
         outDir: front?.outDir ?? config.appConfig.BUILD_DIR,
         assetsInlineLimit: front?.assetsInlineLimit ?? 0,
         rollupOptions: {
-            ...(front?.rollupOptions || {}),
             input: config.input,
         },
     }
 }
-
 
 async function resolveFullReloadConfig(
     config: PluginConfig,

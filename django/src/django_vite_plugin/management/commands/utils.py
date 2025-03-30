@@ -1,6 +1,6 @@
 from typing import Dict
 from django.apps import apps
-from ...config_helper import get_config
+import django
 from ...utils import find_asset
 
 def get_installed_apps() -> Dict[str, str]:
@@ -21,6 +21,7 @@ def format_config_for_output(config: Dict) -> Dict:
     
     config['MANIFEST'] = str(config['MANIFEST'])
     config['INSTALLED_APPS'] = get_installed_apps()
+    config['DJANGO_VERSION'] = django.get_version()
     return config
 
 def find_static_assets(assets: list[str]) -> list[str]:

@@ -1,6 +1,5 @@
 from typing import Any
 from django.core.management.base import BaseCommand, CommandParser
-import django
 import json
 from ...config_helper import get_config
 from .utils import format_config_for_output, find_static_assets
@@ -27,11 +26,6 @@ class Command(BaseCommand):
         """Handle the command execution."""
         if options['action'] == 'config':
             self.print_config()
-        elif options['action'] == 'version':
-            self.stdout.write(
-                json.dumps(django.get_version()),
-                ending=''
-            )
         elif options['find_static'] is not None:
             founds = find_static_assets(options['find_static'])
             self.stdout.write(

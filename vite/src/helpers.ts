@@ -2,6 +2,7 @@ import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { ResolvedConfig, UserConfig, normalizePath } from 'vite'
+import { InputOption } from 'rollup'
 
 import { parse, modify, applyEdits } from 'jsonc-parser'
 
@@ -20,12 +21,14 @@ export function getAbsolutePathFromMetaUrl(path: string): string {
     return path
 }
 
-const BASE_DIR: string = path.dirname(
-    getAbsolutePathFromMetaUrl(
-        typeof __dirname === 'undefined'
-            ? // @ts-ignore
-              path.dirname(new URL(import.meta.url).pathname)
-            : __dirname,
+export const BASE_DIR: string = path.dirname(
+    path.dirname(
+        getAbsolutePathFromMetaUrl(
+            typeof __dirname === 'undefined'
+                ? // @ts-ignore
+                  path.dirname(new URL(import.meta.url).pathname)
+                : __dirname,
+        ),
     ),
 )
 
@@ -73,9 +76,8 @@ export async function execPythonJSON(
 
 export function pluginVersion(): string {
     try {
-        return JSON.parse(
-            fs.readFileSync(path.join(BASE_DIR, '/package.json')).toString(),
-        )?.version
+        const packageJson = path.join(BASE_DIR, '/package.json')
+        return JSON.parse(fs.readFileSync(packageJson).toString())?.version
     } catch {
         return ''
     }
@@ -86,16 +88,36 @@ export function pluginVersion(): string {
  */
 
 export async function addStaticToInputs(
-    input: string | string[],
+    input: InputOption,
     config: PluginConfig,
-): Promise<string[]> {
+): Promise<string[] | Record<string, string>> {
+    let inputs: string[] = []
+    let isObj = false
     if (typeof input === 'string') {
-        input = [input]
+        inputs = [input]
+    } else if (!Array.isArray(input)) {
+        inputs = Object.keys(input)
+        isObj = true
+    } else {
+        inputs = input
     }
-    return await execPythonJSON(
-        ['--find-static', ...input.map((f) => normalizePath(f))],
+
+    const res = await execPythonJSON(
+        ['--find-static', ...inputs.map((f) => normalizePath(f))],
         config,
     )
+
+    if (isObj) {
+        const resObj: Record<string, string> = {}
+        let i = 0
+        for (let key in input as Record<string, string>) {
+            resObj[key] = res[i]
+            i++
+        }
+        return resObj
+    } else {
+        return res
+    }
 }
 
 const getJsOrTsConfigPath = (

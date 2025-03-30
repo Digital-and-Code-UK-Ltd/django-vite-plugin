@@ -9,7 +9,7 @@ import {
     writeAliases,
     getAppAliases,
     resolveDevServerUrl,
-    getAbsolutePathFromMetaUrl,
+    BASE_DIR,
 } from './helpers.js'
 import {
     DevServerUrl,
@@ -21,13 +21,6 @@ import {
 
 let DJANGO_VERSION = '...'
 
-const THIS_DIR: string = getAbsolutePathFromMetaUrl(
-    typeof __dirname === 'undefined'
-        ? // @ts-ignore during build
-          path.dirname(new URL(import.meta.url).pathname)
-        : __dirname,
-)
-
 export async function djangoVitePlugin(
     config: PluginConfig | string | string[],
 ): Promise<Plugin[]> {
@@ -38,10 +31,7 @@ export async function djangoVitePlugin(
     const appConfig = await execPythonJSON(['--action', 'config'], config)
 
     if (DJANGO_VERSION === '...') {
-        process.stdout.write('Loading django version...\r')
-        execPythonJSON(['--action', 'version'], config).then(
-            (v: string) => (DJANGO_VERSION = `"${v}"`),
-        )
+        DJANGO_VERSION = appConfig.DJANGO_VERSION
     }
 
     process.stdout.write('\r'.padStart(26, ' '))
@@ -147,7 +137,7 @@ function djangoPlugin(config: InternalConfig): Plugin {
                         res.statusCode = 404
                         res.end(
                             fs
-                                .readFileSync(path.join(path.dirname(THIS_DIR), 'info.html'))
+                                .readFileSync(path.join(BASE_DIR, 'dist', 'info.html'))
                                 .toString(),
                         )
                     }
