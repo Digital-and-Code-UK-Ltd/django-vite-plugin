@@ -2,7 +2,7 @@ import fs from 'fs'
 import { AddressInfo } from 'net'
 import path from 'path'
 import colors from 'picocolors'
-import { Plugin, UserConfig } from 'vite'
+import { Plugin, UserConfig, ResolvedConfig } from 'vite'
 import {
     pluginVersion,
     execPythonJSON,
@@ -56,6 +56,7 @@ function djangoPlugin(config: InternalConfig): Plugin {
 
     let viteDevServerUrl: DevServerUrl
     let userConfigG: UserConfig
+    let resolvedConfig: ResolvedConfig
 
     return {
         name: 'django-vite-plugin',
@@ -65,11 +66,15 @@ function djangoPlugin(config: InternalConfig): Plugin {
             userConfigG = userConfig
 
             return {
-                ...userConfig,
                 base:
                     command == 'build' ? config.appConfig.BUILD_URL_PREFIX : '',
                 root: userConfig.root || config.root || '.',
                 build,
+                server: {
+                    origin:
+                        userConfig.server?.origin ??
+                        'http://__django_vite_plugin_placeholder__.protibimbok',
+                },
                 resolve: {
                     alias: Array.isArray(userConfig.resolve?.alias)
                         ? [
@@ -84,6 +89,18 @@ function djangoPlugin(config: InternalConfig): Plugin {
                               ...userConfig.resolve?.alias,
                           },
                 },
+            }
+        },
+        configResolved(config) {
+            resolvedConfig = config
+        },
+        transform(code) {
+            if (resolvedConfig?.command === 'serve') {
+                code = code.replace(
+                    /http:\/\/__django_vite_plugin_placeholder__\.protibimbok/g,
+                    viteDevServerUrl,
+                )
+                return code
             }
         },
         configureServer(server) {
@@ -137,7 +154,9 @@ function djangoPlugin(config: InternalConfig): Plugin {
                         res.statusCode = 404
                         res.end(
                             fs
-                                .readFileSync(path.join(BASE_DIR, 'dist', 'info.html'))
+                                .readFileSync(
+                                    path.join(BASE_DIR, 'dist', 'info.html'),
+                                )
                                 .toString(),
                         )
                     }
